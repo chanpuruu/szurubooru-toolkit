@@ -16,11 +16,14 @@ def test_defaults_not_shared_between_instances(make_config):
     first = make_config()
     first.upload_media['tags'] = ['changed']
     first.credentials['pixiv']['token'] = 'secret'
+    first.categorize_tags['category_colors']['artist'] = '#ffffff'
 
     second = make_config()
 
     assert second.upload_media['tags'] == ['tagme']
     assert second.credentials['pixiv']['token'] is None
+    assert second.credentials['rule34'] == {'user_id': None, 'api_key': None}
+    assert second.categorize_tags['category_colors']['artist'] == '#c00000'
     assert config_module.UPLOAD_MEDIA_DEFAULTS['tags'] == ['tagme']
 
 

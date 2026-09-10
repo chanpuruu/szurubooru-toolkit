@@ -11,6 +11,11 @@ token = "None"
 [credentials.sankaku]
 username = "None"
 password = "None"
+# Optional Rule34 API credentials. Auto mode uses the API when both are set,
+# then falls back to the public tag page if needed.
+#[credentials.rule34]
+#user_id = "None"
+#api_key = "None"
 # Specify Gelbooru credentials if you want to search Gelbooru, otherwise leave it commented out
 #[credentials.gelbooru]
 #user_id = "None"
@@ -68,6 +73,16 @@ query = '*'
 overwrite = false
 # Import tag implications from Danbooru for tags created by a query
 import_implications = false
+hide_progress = false
+
+[categorize_tags]
+rule34_mode = "auto"
+report_file = "./misc/tag_category_review.csv"
+workers = 4
+html_delay = 1.0
+retries = 3
+retry_backoff = 2.0
+category_colors = { artist = "#c00000", copyright = "#a0a0ff", character = "#00aa00", metadata = "#ff7e00" }
 hide_progress = false
 
 [delete_posts]

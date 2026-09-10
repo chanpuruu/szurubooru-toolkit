@@ -20,6 +20,7 @@ GLOBALS_DEFAULTS = {
 
 CREDENTIALS_DEFAULTS = {
     'pixiv': {'token': None},
+    'rule34': {'user_id': None, 'api_key': None},
     'sankaku': {'username': None, 'password': None},
 }
 
@@ -71,6 +72,22 @@ CREATE_TAGS_DEFAULTS = {
     'query': '*',
     'overwrite': False,
     'import_implications': False,
+}
+
+CATEGORIZE_TAGS_DEFAULTS = {
+    'rule34_mode': 'auto',
+    'report_file': './misc/tag_category_review.csv',
+    'workers': 4,
+    'html_delay': 1.0,
+    'retries': 3,
+    'retry_backoff': 2.0,
+    'category_colors': {
+        'artist': '#c00000',
+        'copyright': '#a0a0ff',
+        'character': '#00aa00',
+        'metadata': '#ff7e00',
+    },
+    'hide_progress': False,
 }
 
 DELETE_POSTS_DEFAULTS = {'hide_progress': False, 'workers': 4}
@@ -162,6 +179,7 @@ class Config:
         self.globals = copy.deepcopy(GLOBALS_DEFAULTS)
         self.logging = copy.deepcopy(LOGGING_DEFAULTS)
         self.auto_tagger = copy.deepcopy(AUTO_TAGGER_DEFAULTS)
+        self.categorize_tags = copy.deepcopy(CATEGORIZE_TAGS_DEFAULTS)
         self.create_tags = copy.deepcopy(CREATE_TAGS_DEFAULTS)
         self.create_relations = copy.deepcopy(CREATE_RELATIONS_DEFAULTS)
         self.fix_relations = copy.deepcopy(FIX_RELATIONS_DEFAULTS)

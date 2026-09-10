@@ -83,13 +83,35 @@ def setup_logger() -> None:
     logger.configure(handlers=handlers)
 
 
-def setup_clients():
+def setup_clients(include_rule34: bool = False, include_sankaku: bool = True):
     from szurubooru_toolkit.danbooru import Danbooru  # noqa F401
-    from szurubooru_toolkit.sankaku import Sankaku
     from szurubooru_toolkit.szurubooru import Szurubooru
 
-    global danbooru, sankaku, szuru
+    global danbooru, szuru
 
     danbooru = Danbooru()
-    sankaku = Sankaku()
+
+    if include_rule34:
+        from szurubooru_toolkit.rule34 import Rule34
+
+        global rule34
+
+        rule34_credentials = config.credentials.get('rule34', {})
+        rule34_settings = config.categorize_tags
+        rule34 = Rule34(
+            user_id=rule34_credentials.get('user_id'),
+            api_key=rule34_credentials.get('api_key'),
+            mode=rule34_settings['rule34_mode'],
+            retries=int(rule34_settings['retries']),
+            backoff=float(rule34_settings['retry_backoff']),
+            html_delay=float(rule34_settings['html_delay']),
+        )
+
+    if include_sankaku:
+        from szurubooru_toolkit.sankaku import Sankaku
+
+        global sankaku
+
+        sankaku = Sankaku()
+
     szuru = Szurubooru(config.globals['url'], config.globals['username'], config.globals['api_token'])

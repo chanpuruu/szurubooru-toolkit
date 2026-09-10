@@ -32,6 +32,7 @@ Options:
 
 Commands:
   auto-tagger          Tag posts automatically
+   categorize-tags      Review and repair categories of existing default tags
   create-relations     Create relations between character and parody tag categories
   create-tags          Create tags based on a tag file or query
   delete-posts         Delete posts
@@ -179,6 +180,7 @@ The CLI is installed as `szuru-toolkit` and under the shorter alias `szuructl` â
 Following commands are currently available:
 
 * `auto-tagger`: Tag posts automatically
+* `categorize-tags`: Review and repair categories of existing default tags
 * `create-relations`: Create relations between character and parody tag categories
 * `create-tags`: Create tags based on a tag file or query
 * `delete-posts`: Delete posts
@@ -202,6 +204,60 @@ If your query starts with a dash (`-`), for example to negate a tag, you have to
 `szuru-toolkit auto-tagger --no-wd-tagger -- "-foo bar"`
 
 While most commands are self explanatory, the following require a bit of extra attention:
+
+### :label: categorize-tags
+`categorize-tags` audits tags that are currently in Szurubooru's `default`
+category. It checks each exact tag name and its local aliases against Rule34
+first, then asks Danbooru only for tags Rule34 could not categorize.
+
+The category mapping is:
+
+| Source type | Szurubooru category |
+| --- | --- |
+| General (including ambiguous) | `default` |
+| Artist | `artist` |
+| Copyright | `copyright` |
+| Character | `character` |
+| Metadata | `metadata` |
+
+The first run writes `./misc/tag_category_review.csv`. In Docker this is the
+host-visible `misc/tag_category_review.csv` because `./misc` is already mounted
+into the container. The report includes local usage counts, the matched source,
+the proposed category, Rule34's ambiguity marker and unresolved or failed
+lookups. A valid general tag is recorded as `resolved_unchanged`, not as noise.
+
+An interactive run prompts to `save` or `apply` after writing the report and
+defaults to `save`. A noninteractive or cron run is report-only unless `--apply`
+is supplied. Applying in the same run reuses the completed lookups. A saved
+report can be reviewed or edited and applied later without contacting Rule34 or
+Danbooru again:
+
+```
+szuru-toolkit categorize-tags --report-only
+szuru-toolkit categorize-tags --from-report ./misc/tag_category_review.csv --apply
+```
+
+Rule34 lookup modes are `auto`, `api` and `html`. `auto` uses the authenticated
+API when both credentials below are configured and falls back to the public tag
+page. `html` always uses the public page with a delay between requests. `api`
+requires credentials from the Rule34 account options page:
+
+```
+[credentials.rule34]
+user_id = "your_user_id"
+api_key = "your_api_key"
+```
+
+On apply, missing `artist`, `copyright`, `character` and `metadata` categories
+are created before any tags are changed. Each tag is fetched again and updated
+only if it is still in `default`. The command sends only the tag's version and
+new category: it never deletes tags or changes posts, media, tag names, aliases,
+implications or suggestions. Tags not found on either source remain unchanged
+for manual review.
+
+__Docker examples__
+* `docker exec -it szurubooru-toolkit uv run szuru-toolkit categorize-tags --report-only`
+* `docker exec -it szurubooru-toolkit uv run szuru-toolkit categorize-tags --from-report ./misc/tag_category_review.csv --apply`
 
 ### :label: create-relations
 __Examples__

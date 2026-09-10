@@ -6,6 +6,10 @@ import httpx
 from loguru import logger
 
 
+class DanbooruTagLookupError(Exception):
+    """Raised when a tag category lookup cannot produce a trustworthy result."""
+
+
 class Danbooru:
     """Handles the Danbooru API calls the toolkit needs (artists, wiki pages, tag export)."""
 
@@ -185,7 +189,7 @@ class Danbooru:
 
         return implications
 
-    def get_tag_categories(self, tag_names: List[str]) -> dict:
+    def get_tag_categories(self, tag_names: List[str], strict: bool = False) -> dict:
         """
         Returns the Danbooru categories of the given tags.
 
@@ -203,13 +207,18 @@ class Danbooru:
             params = {'search[name_comma]': ','.join(chunk), 'limit': 1000}
 
             try:
-                results = self.client.get('/tags.json', params=params).json()
+                response = self.client.get('/tags.json', params=params)
+                response.raise_for_status()
+                results = response.json()
                 if not isinstance(results, list):
-                    logger.warning(f'Unexpected Danbooru response: {results!r}')
-                    continue
+                    raise ValueError(f'Unexpected Danbooru response: {results!r}')
                 for entry in results:
+                    if not isinstance(entry, dict) or 'name' not in entry or 'category' not in entry:
+                        raise ValueError(f'Unexpected Danbooru tag entry: {entry!r}')
                     categories[entry['name']] = entry['category']
             except Exception as e:
+                if strict:
+                    raise DanbooruTagLookupError('Could not fetch tag categories from Danbooru') from e
                 logger.critical(f'Could not fetch tag categories: {e}')
 
         return categories

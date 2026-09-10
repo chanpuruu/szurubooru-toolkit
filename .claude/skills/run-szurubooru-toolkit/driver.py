@@ -3,6 +3,7 @@
 
 Modes:
   python3 driver.py smoke        # default: full tag-posts flow, asserts the PUT
+    python3 driver.py categorize   # apply a saved category report, asserts safe PUT
   python3 driver.py serve [port] # keep the fake booru running; poke it manually
 
 The fake server implements just enough of the szurubooru API for read/tag flows:
@@ -17,6 +18,7 @@ The CLI is invoked from a throwaway cwd containing a hermetic config.toml so the
 user's real config in ~/.config/szurubooru-toolkit/ is never picked up.
 """
 
+import csv
 import json
 import re
 import subprocess
@@ -27,6 +29,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs
+from urllib.parse import unquote
 from urllib.parse import urlparse
 
 
@@ -52,7 +55,20 @@ def seed_posts() -> dict:
 
 class FakeSzurubooru(BaseHTTPRequestHandler):
     posts = seed_posts()
-    mutations = []  # (method, path, payload) of every PUT/DELETE
+    tags = {
+        'artist_tag': {
+            'names': ['artist_tag'],
+            'category': 'default',
+            'version': 1,
+            'usages': 2,
+            'implications': [],
+            'suggestions': [],
+        }
+    }
+    categories = [
+        {'name': 'default', 'color': '#000000', 'order': 1, 'version': 1, 'usages': 1, 'default': True},
+    ]
+    mutations = []  # (method, path, payload) of every POST/PUT/DELETE
 
     def log_message(self, fmt, *args):  # silence default request logging
         pass
@@ -81,21 +97,51 @@ class FakeSzurubooru(BaseHTTPRequestHandler):
                 self._send(self.posts[post_id])
             else:
                 self._send({'name': 'PostNotFoundError', 'title': 'not found', 'description': 'Post not found.'}, 404)
+        elif url.path == '/api/tag-categories':
+            self._send({'results': self.categories})
+        elif url.path.startswith('/api/tag/'):
+            tag_name = unquote(url.path.rsplit('/', 1)[1])
+            if tag_name in self.tags:
+                self._send(self.tags[tag_name])
+            else:
+                self._send({'name': 'TagNotFoundError', 'title': 'not found', 'description': 'Tag not found.'}, 404)
         else:
             self._send({'name': 'ValidationError', 'title': 'bad path', 'description': f'Unhandled GET {url.path}'}, 404)
 
     def do_PUT(self):
-        post_id = int(urlparse(self.path).path.rsplit('/', 1)[1])
+        path = urlparse(self.path).path
         payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-        print(f'[fake-booru] PUT /api/post/{post_id} {json.dumps(payload)}', flush=True)
+        print(f'[fake-booru] PUT {path} {json.dumps(payload)}', flush=True)
         FakeSzurubooru.mutations.append(('PUT', self.path, payload))
-        post = self.posts[post_id]
-        post['version'] += 1
-        if 'tags' in payload:
-            post['tags'] = [{'names': [t], 'category': 'default', 'usages': 1} for t in payload['tags']]
-        if 'source' in payload:
-            post['source'] = payload['source']
-        self._send(post)
+
+        if path.startswith('/api/tag/'):
+            tag_name = unquote(path.rsplit('/', 1)[1])
+            tag = self.tags[tag_name]
+            tag['version'] += 1
+            tag['category'] = payload['category']
+            self._send(tag)
+        else:
+            post_id = int(path.rsplit('/', 1)[1])
+            post = self.posts[post_id]
+            post['version'] += 1
+            if 'tags' in payload:
+                post['tags'] = [{'names': [t], 'category': 'default', 'usages': 1} for t in payload['tags']]
+            if 'source' in payload:
+                post['source'] = payload['source']
+            self._send(post)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        print(f'[fake-booru] POST {path} {json.dumps(payload)}', flush=True)
+        FakeSzurubooru.mutations.append(('POST', self.path, payload))
+
+        if path == '/api/tag-categories':
+            category = payload | {'version': 1, 'usages': 0, 'default': False}
+            self.categories.append(category)
+            self._send(category)
+        else:
+            self._send({'name': 'ValidationError', 'title': 'bad path', 'description': f'Unhandled POST {path}'}, 404)
 
     def do_DELETE(self):
         post_id = int(urlparse(self.path).path.rsplit('/', 1)[1])
@@ -153,6 +199,83 @@ def smoke() -> int:
     return 0
 
 
+def categorize_smoke() -> int:
+    FakeSzurubooru.mutations = []
+    FakeSzurubooru.tags = {
+        'artist_tag': {
+            'names': ['artist_tag'],
+            'category': 'default',
+            'version': 1,
+            'usages': 2,
+            'implications': [],
+            'suggestions': [],
+        }
+    }
+    FakeSzurubooru.categories = [
+        {'name': 'default', 'color': '#000000', 'order': 1, 'version': 1, 'usages': 1, 'default': True},
+    ]
+
+    server = start_server()
+    url = f'http://127.0.0.1:{server.server_address[1]}'
+    print(f'[driver] fake szurubooru listening on {url}')
+
+    with tempfile.TemporaryDirectory() as tmp:
+        report = Path(tmp, 'tag_category_review.csv')
+        fields = [
+            'tag',
+            'matched_name',
+            'usages',
+            'current_category',
+            'proposed_category',
+            'source',
+            'source_type',
+            'source_post_count',
+            'ambiguous',
+            'lookup_mode',
+            'status',
+            'detail',
+        ]
+        with report.open('w', encoding='utf-8', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=fields)
+            writer.writeheader()
+            writer.writerow({
+                'tag': 'artist_tag',
+                'matched_name': 'artist_tag',
+                'usages': 2,
+                'current_category': 'default',
+                'proposed_category': 'artist',
+                'source': 'rule34',
+                'source_type': 'artist',
+                'source_post_count': 10,
+                'ambiguous': False,
+                'lookup_mode': 'api',
+                'status': 'planned_change',
+                'detail': '',
+            })
+
+        result = run_cli(url, ['categorize-tags', '--from-report', str(report), '--apply'])
+        print(result.stdout, end='')
+        print(result.stderr, end='', file=sys.stderr)
+
+        with report.open(encoding='utf-8', newline='') as file:
+            applied = list(csv.DictReader(file))
+
+    posts = [mutation for mutation in FakeSzurubooru.mutations if mutation[1].startswith('/api/post/')]
+    category_posts = [mutation for mutation in FakeSzurubooru.mutations if mutation[:2] == ('POST', '/api/tag-categories')]
+    tag_puts = [mutation for mutation in FakeSzurubooru.mutations if mutation[:2] == ('PUT', '/api/tag/artist_tag')]
+
+    assert result.returncode == 0, f'CLI exited {result.returncode}'
+    assert posts == [], f'categorize-tags must not mutate posts: {posts}'
+    assert len(category_posts) == 1, f'expected one category POST, got {category_posts}'
+    assert len(tag_puts) == 1, f'expected one tag PUT, got {tag_puts}'
+    assert tag_puts[0][2] == {'version': 1, 'category': 'artist'}, f'unsafe tag payload: {tag_puts[0][2]}'
+    assert applied[0]['status'] == 'applied', f'report was not updated after apply: {applied}'
+
+    server.shutdown()
+    print('[driver] CATEGORIZE PASS: category-only tag update verified')
+    return 0
+
+
 def serve(port: int = 8899) -> int:
     server = start_server(port)
     url = f'http://127.0.0.1:{server.server_address[1]}'
@@ -169,4 +292,6 @@ if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else 'smoke'
     if mode == 'serve':
         sys.exit(serve(*[int(a) for a in sys.argv[2:3]]))
+    if mode == 'categorize':
+        sys.exit(categorize_smoke())
     sys.exit(smoke())

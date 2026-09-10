@@ -13,6 +13,7 @@ from loguru import logger
 
 # Only the post fields parse_post consumes; slims down large search responses
 POST_FIELDS = 'id,source,contentUrl,version,relations,checksumMD5,type,safety,tags'
+TAG_FIELDS = 'names,category,version,usages'
 
 # Oxibooru spells the MD5 checksum *selector* checksumMd5 (the response key stays
 # checksumMD5); the client falls back to this automatically when the server
@@ -98,10 +99,12 @@ class Tag:
         version: int = None,
         implications: list[Tag] = None,
         suggestions: list[Tag] = None,
+        usages: int = None,
     ) -> None:
         self.names = names
         self.category = category
         self.version = version
+        self.usages = usages
         self.implications = implications if implications is not None else []
         self.suggestions = suggestions if suggestions is not None else []
 
@@ -111,6 +114,7 @@ class Tag:
             names=data['names'],
             category=data.get('category', 'default'),
             version=data.get('version'),
+            usages=data.get('usages'),
             implications=[cls.from_json(tag) for tag in data.get('implications', [])],
             suggestions=[cls.from_json(tag) for tag in data.get('suggestions', [])],
         )
@@ -124,6 +128,37 @@ class Tag:
 
     def __repr__(self) -> str:
         return f'Tag(names: {self.names}, category: {self.category})'
+
+
+class TagCategory:
+    """Represents a szurubooru tag category resource."""
+
+    def __init__(
+        self,
+        name: str,
+        color: str,
+        order: int,
+        version: int = None,
+        usages: int = None,
+        default: bool = False,
+    ) -> None:
+        self.name = name
+        self.color = color
+        self.order = order
+        self.version = version
+        self.usages = usages
+        self.default = default
+
+    @classmethod
+    def from_json(cls, data: dict) -> TagCategory:
+        return cls(
+            name=data['name'],
+            color=data['color'],
+            order=data.get('order', 0),
+            version=data.get('version'),
+            usages=data.get('usages'),
+            default=data.get('default', False),
+        )
 
 
 class Szurubooru:
@@ -162,6 +197,7 @@ class Szurubooru:
 
         # Field selection the server accepts; negotiated on first use (None = full resources)
         self._post_fields = POST_FIELDS
+        self._tag_fields = TAG_FIELDS
 
         self.allowed_tokens = [
             'ar',
@@ -240,9 +276,7 @@ class Szurubooru:
             else:
                 if response.status_code not in TRANSIENT_STATUS_CODES or attempt == TRANSIENT_RETRIES:
                     break
-                logger.debug(
-                    f'{method} {path} returned HTTP{response.status_code}, retrying in {attempt * TRANSIENT_BACKOFF}s...'
-                )
+                logger.debug(f'{method} {path} returned HTTP{response.status_code}, retrying in {attempt * TRANSIENT_BACKOFF}s...')
             time.sleep(attempt * TRANSIENT_BACKOFF)
 
         try:
@@ -520,6 +554,51 @@ class Szurubooru:
 
         return Tag.from_json(response)
 
+    def get_tags(self, query: str = '', pagination: bool = True) -> Generator[Tag, None, None]:
+        """Retrieve tags matching a szurubooru tag query."""
+
+        params = {'query': query, 'limit': 100}
+
+        def fetch_page(offset: int = 0) -> dict:
+            page_params = params | ({'offset': offset} if offset else {})
+
+            while True:
+                fields = self._tag_fields
+                try:
+                    if fields:
+                        return self._request('GET', '/tags/', params=page_params | {'fields': fields})
+                    return self._request('GET', '/tags/', params=page_params)
+                except SzurubooruApiError as e:
+                    if fields is None or not _is_invalid_fields_error(e):
+                        raise
+                    logger.debug('Server rejected the tag field selection, requesting full tag resources...')
+                    self._tag_fields = None
+
+        response = fetch_page()
+        total = int(response['total'])
+
+        for result in response['results']:
+            yield Tag.from_json(result)
+
+        pages = ceil(total / 100)
+        if pagination and pages > 1:
+            with ThreadPoolExecutor(max_workers=min(PAGE_FETCH_WORKERS, pages - 1)) as executor:
+                for future in [executor.submit(fetch_page, page * 100) for page in range(1, pages)]:
+                    for result in future.result()['results']:
+                        yield Tag.from_json(result)
+
+    def get_tag_categories(self) -> list[TagCategory]:
+        """Retrieve all tag categories configured in szurubooru."""
+
+        response = self._request('GET', '/tag-categories')
+        return [TagCategory.from_json(category) for category in response['results']]
+
+    def create_tag_category(self, name: str, color: str, order: int) -> TagCategory:
+        """Create a tag category in szurubooru."""
+
+        response = self._request('POST', '/tag-categories', json={'name': name, 'color': color, 'order': order})
+        return TagCategory.from_json(response)
+
     def create_tag(self, tag_name: str, category: str = 'default', overwrite: bool = False) -> Tag:
         """
         Creates a new tag in szurubooru.
@@ -577,6 +656,13 @@ class Szurubooru:
 
         response = self._request('PUT', '/tag/' + urllib.parse.quote(tag.primary_name, safe=''), json=payload)
 
+        return Tag.from_json(response)
+
+    def update_tag_category(self, tag_name: str, version: int, category: str) -> Tag:
+        """Update only the category of an existing tag."""
+
+        payload = {'version': version, 'category': category}
+        response = self._request('PUT', '/tag/' + urllib.parse.quote(tag_name, safe=''), json=payload)
         return Tag.from_json(response)
 
     def upload_temporary_file(self, media: bytes, file_ext: str = None) -> str:

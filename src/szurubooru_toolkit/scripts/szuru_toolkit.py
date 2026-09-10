@@ -34,7 +34,13 @@ def setup_module(module_name: str, click_context: click.core.Context) -> types.M
     config.override_config(click_context.obj)
     setup_logger()
 
-    setup_clients()
+    include_rule34 = module_name == 'categorize_tags' and not click_context.params.get('from_report')
+    try:
+        setup_clients(include_rule34=include_rule34, include_sankaku=module_name != 'categorize_tags')
+    except ValueError as error:
+        if include_rule34:
+            raise click.UsageError(str(error)) from error
+        raise
     module = importlib.import_module('szurubooru_toolkit.scripts.' + module_name)
 
     if module_name in ['import_from_url', 'upload_media']:
@@ -347,6 +353,77 @@ def click_create_relations(ctx, query, threshold):
 
     module = setup_module('create_relations', ctx)
     module.main(query)
+
+
+@cli.command(
+    'categorize-tags',
+    epilog="""\b
+Examples:
+  szuru-toolkit categorize-tags --report-only
+  szuru-toolkit categorize-tags --rule34-mode api --apply
+  szuru-toolkit categorize-tags --from-report ./misc/tag_category_review.csv --apply
+""",
+)
+@click.option(
+    '--rule34-mode',
+    type=click.Choice(['auto', 'api', 'html'], case_sensitive=True),
+    help=f'How to query Rule34 (default: {config.CATEGORIZE_TAGS_DEFAULTS["rule34_mode"]}).',
+)
+@click.option(
+    '--report-file',
+    type=click.Path(dir_okay=False),
+    help=f'CSV review report path (default: {config.CATEGORIZE_TAGS_DEFAULTS["report_file"]}).',
+)
+@click.option('--apply', 'apply_changes', is_flag=True, help='Apply the reviewed category changes without prompting.')
+@click.option('--report-only', is_flag=True, help='Write the review report without changing any categories.')
+@click.option(
+    '--from-report',
+    type=click.Path(exists=True, dir_okay=False),
+    help='Apply or review a previously generated report without querying Rule34 or Danbooru again.',
+)
+@click.option(
+    '--workers',
+    type=click.IntRange(min=1),
+    help=f'Concurrent Rule34 API lookups (default: {config.CATEGORIZE_TAGS_DEFAULTS["workers"]}).',
+)
+@click.option(
+    '--html-delay',
+    type=click.FloatRange(min=0),
+    help=f'Minimum delay between public Rule34 page requests (default: {config.CATEGORIZE_TAGS_DEFAULTS["html_delay"]}).',
+)
+@click.option(
+    '--retries',
+    type=click.IntRange(min=1),
+    help=f'Rule34 transient request attempts (default: {config.CATEGORIZE_TAGS_DEFAULTS["retries"]}).',
+)
+@click.option(
+    '--retry-backoff',
+    type=click.FloatRange(min=0),
+    help=f'Rule34 retry backoff in seconds (default: {config.CATEGORIZE_TAGS_DEFAULTS["retry_backoff"]}).',
+)
+@click.pass_context
+def click_categorize_tags(
+    ctx,
+    rule34_mode,
+    report_file,
+    apply_changes,
+    report_only,
+    from_report,
+    workers,
+    html_delay,
+    retries,
+    retry_backoff,
+):
+    """Review and repair categories of existing default tags."""
+
+    if apply_changes and report_only:
+        raise click.UsageError('--apply and --report-only cannot be used together.')
+    if from_report and report_file:
+        raise click.UsageError('--from-report and --report-file cannot be used together.')
+
+    collect_user_params(ctx, 'categorize_tags')
+    module = setup_module('categorize_tags', ctx)
+    module.main(apply_changes, report_only, from_report or '')
 
 
 @cli.command('fix-relations', epilog='Example: szuru-toolkit fix-relations "date:today"')
