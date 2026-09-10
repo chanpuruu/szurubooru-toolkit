@@ -31,6 +31,17 @@ def make_post_json(post_id: int, tags: list = None, **overrides) -> dict:
     return post
 
 
+def make_tag_json(name: str, category: str = 'default', version: int = 1, usages: int = 0) -> dict:
+    return {
+        'names': [name],
+        'category': category,
+        'version': version,
+        'usages': usages,
+        'implications': [],
+        'suggestions': [],
+    }
+
+
 class RecordingClient:
     """Szurubooru client wired to a MockTransport which records every request."""
 
@@ -203,6 +214,7 @@ def test_get_tag_returns_full_tag():
                 'names': ['hitori_bocchi'],
                 'category': 'character',
                 'version': 3,
+                'usages': 5,
                 'implications': [{'names': ['hitoribocchi_no_marumaru_seikatsu'], 'category': 'parody', 'usages': 1}],
                 'suggestions': [],
             },
@@ -214,6 +226,7 @@ def test_get_tag_returns_full_tag():
     assert tag.primary_name == 'hitori_bocchi'
     assert tag.category == 'character'
     assert tag.version == 3
+    assert tag.usages == 5
     assert [implication.primary_name for implication in tag.implications] == ['hitoribocchi_no_marumaru_seikatsu']
 
 
@@ -233,6 +246,79 @@ def test_get_tag_not_found():
     client = RecordingClient(handler)
     with pytest.raises(TagNotFoundError):
         client.szuru.get_tag('missing')
+
+
+def test_get_tags_paginates_and_preserves_usage_counts():
+    def handler(request):
+        assert request.url.path == '/api/tags/'
+        params = dict(request.url.params)
+        assert params['query'] == 'category:default sort:usages'
+        assert params['fields'] == 'names,category,version,usages'
+        offset = int(params.get('offset', 0))
+        count = 100 if offset < 200 else 50
+        tags = [make_tag_json(f'tag_{offset + index}', usages=offset + index) for index in range(count)]
+        return httpx.Response(200, json={'total': 250, 'results': tags})
+
+    client = RecordingClient(handler)
+    tags = list(client.szuru.get_tags('category:default sort:usages'))
+
+    assert len(tags) == 250
+    assert [tag.primary_name for tag in tags] == [f'tag_{index}' for index in range(250)]
+    assert tags[-1].usages == 249
+    assert {dict(request.url.params).get('offset') for request in client.requests} == {None, '100', '200'}
+
+
+def test_get_tags_falls_back_to_full_resources_and_remembers_it():
+    def handler(request):
+        if 'fields' in dict(request.url.params):
+            return httpx.Response(
+                400,
+                json={
+                    'name': 'FailedToDeserializeQueryString',
+                    'title': 'Invalid field',
+                    'description': 'invalid field selector',
+                },
+            )
+        return httpx.Response(200, json={'total': 1, 'results': [make_tag_json('tag_1', usages=2)]})
+
+    client = RecordingClient(handler)
+
+    assert [tag.primary_name for tag in client.szuru.get_tags('category:default')] == ['tag_1']
+    assert [tag.primary_name for tag in client.szuru.get_tags('category:default')] == ['tag_1']
+    assert len(client.requests) == 3
+    assert 'fields' in dict(client.requests[0].url.params)
+    assert 'fields' not in dict(client.requests[1].url.params)
+    assert 'fields' not in dict(client.requests[2].url.params)
+
+
+def test_get_tag_categories():
+    response = {
+        'results': [
+            {'name': 'default', 'color': '#000000', 'order': 1, 'version': 2, 'usages': 10, 'default': True},
+            {'name': 'copyright', 'color': '#a0a0ff', 'order': 2, 'version': 1, 'usages': 0, 'default': False},
+        ]
+    }
+    client = RecordingClient(lambda request: httpx.Response(200, json=response))
+
+    categories = client.szuru.get_tag_categories()
+
+    assert client.requests[0].url.path == '/api/tag-categories'
+    assert [category.name for category in categories] == ['default', 'copyright']
+    assert categories[0].default is True
+    assert categories[1].order == 2
+
+
+def test_create_tag_category():
+    def handler(request):
+        assert request.url.path == '/api/tag-categories'
+        assert json.loads(request.content) == {'name': 'copyright', 'color': '#a0a0ff', 'order': 3}
+        return httpx.Response(200, json={'name': 'copyright', 'color': '#a0a0ff', 'order': 3, 'version': 1})
+
+    client = RecordingClient(handler)
+    category = client.szuru.create_tag_category('copyright', '#a0a0ff', 3)
+
+    assert category.name == 'copyright'
+    assert category.order == 3
 
 
 def test_create_tag_returns_tag():
@@ -319,6 +405,18 @@ def test_update_tag_serializes_implications_as_names():
         'implications': ['parody_b'],
         'suggestions': [],
     }
+
+
+def test_update_tag_category_sends_only_version_and_category():
+    def handler(request):
+        assert request.url.raw_path == b'/api/tag/6%2Bgirls'
+        assert json.loads(request.content) == {'version': 7, 'category': 'artist'}
+        return httpx.Response(200, json=make_tag_json('6+girls', category='artist', version=8))
+
+    client = RecordingClient(handler)
+    tag = client.szuru.update_tag_category('6+girls', 7, 'artist')
+
+    assert tag.category == 'artist'
 
 
 def test_upload_temporary_file_multipart():

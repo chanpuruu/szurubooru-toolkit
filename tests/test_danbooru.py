@@ -1,6 +1,8 @@
 import httpx
+import pytest
 
 from szurubooru_toolkit.danbooru import Danbooru
+from szurubooru_toolkit.danbooru import DanbooruTagLookupError
 
 
 def make_danbooru(handler):
@@ -116,3 +118,22 @@ def test_get_tag_categories():
     categories = make_danbooru(handler).get_tag_categories(['monster_girl', 'hatsune_miku'])
 
     assert categories == {'monster_girl': 0, 'hatsune_miku': 4}
+
+
+def test_get_tag_categories_strict_raises_on_source_failure():
+    client = make_danbooru(lambda request: httpx.Response(503, json={'message': 'unavailable'}))
+
+    with pytest.raises(DanbooruTagLookupError):
+        client.get_tag_categories(['monster_girl'], strict=True)
+
+
+def test_get_tag_categories_strict_empty_response_is_a_genuine_miss():
+    client = make_danbooru(lambda request: httpx.Response(200, json=[]))
+    assert client.get_tag_categories(['missing'], strict=True) == {}
+
+
+def test_get_tag_categories_strict_rejects_malformed_entries():
+    client = make_danbooru(lambda request: httpx.Response(200, json=[{'name': 'missing_category'}]))
+
+    with pytest.raises(DanbooruTagLookupError):
+        client.get_tag_categories(['missing_category'], strict=True)
