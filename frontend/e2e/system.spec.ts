@@ -1,0 +1,35 @@
+import { expect, test } from '@playwright/test'
+
+test('built SPA renders live health and refreshes without layout overflow', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await page.goto('/system')
+  await expect(page.getByRole('heading', { name: 'System', exact: true })).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('API connected')
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#main')).toBeFocused()
+  await expect(page.getByText('Ready', { exact: true })).toBeVisible()
+  await expect(page.getByText('Unavailable', { exact: true })).toBeVisible()
+  const response = page.waitForResponse('/api/v1/system/status')
+  await page.getByRole('button', { name: 'Refresh status' }).click()
+  expect((await response).ok()).toBeTruthy()
+  await expect(page.locator('.brand img')).toBeVisible()
+  expect(await page.locator('.brand img').evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
+  expect(pageErrors).toEqual([])
+  await page.screenshot({ path: `test-results/system-${test.info().project.name}.png`, fullPage: true })
+})
+
+test('API errors stay JSON and disconnected UI recovers', async ({ page, request }) => {
+  const missing = await request.get('/api/v1/jobs')
+  expect(missing.status()).toBe(404)
+  expect(missing.headers()['content-type']).toContain('application/json')
+  await page.route('**/api/v1/system/status', route => route.fulfill({ status: 503, body: '{}' }))
+  await page.goto('/')
+  await expect(page.getByRole('status')).toContainText('API connection unavailable')
+  await page.unroute('**/api/v1/system/status')
+  await page.getByRole('button', { name: 'Refresh status' }).click()
+  await expect(page.getByRole('status')).toContainText('API connected')
+})

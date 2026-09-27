@@ -6,6 +6,9 @@
 
 # szurubooru-toolkit
 Python package and script collection to manage your [szurubooru](https://github.com/rr-/szurubooru) image board.
+
+A read-only [Vue/FastAPI web scaffold](docs/WEB_UI.md) is available for development. It does not yet provide login or execute commands; the existing CLI and cron deployment remain unchanged.
+
 ```
 Usage: szuru-toolkit [OPTIONS] COMMAND [ARGS]...
 

@@ -2,7 +2,7 @@
 
 ## Scope And Execution
 
-This is a Python 3.11+ CLI package managed with uv. The Vue/FastAPI application in [WEB_UI_PLAN.md](WEB_UI_PLAN.md) is planned, not implemented. Read that plan and the [decision backlog](docs/decisions/backlog.md) before web scaffolding or architecture work. Implement only the authorized slice; the plan is not blanket authorization.
+This is a Python 3.11+ CLI package managed with uv, with a read-only Vue/FastAPI [web scaffold](docs/WEB_UI.md). Jobs, auth, profiles, and the other operational features in [WEB_UI_PLAN.md](WEB_UI_PLAN.md) remain unimplemented. Read that plan and the [decision backlog](docs/decisions/backlog.md) before web architecture work. Implement only the authorized slice; the plan is not blanket authorization.
 
 Preserve unrelated and concurrent changes. Start from the nearest controlling code and a falsifiable behavior check; after the first substantive edit, run that check before widening scope. Reuse existing helpers and tests. Do not weaken tests or validation to obtain a pass.
 
@@ -14,11 +14,13 @@ Perform routine work directly. Read [delegation guidance](docs/agents/DELEGATION
 
 - [src/szurubooru_toolkit/](src/szurubooru_toolkit/): Python clients, configuration, utilities, and CLI scripts. Config, clients, logging, and several caches are process-global; do not execute concurrent web jobs in this interpreter.
 - [tests/](tests/): pytest tests, generally using fixtures and mocked HTTP clients.
+- [frontend/](frontend/): npm-managed Vue shell, generated API types, and browser tests; follow its scoped guidance.
+- [src/szurubooru_toolkit/web/](src/szurubooru_toolkit/web/): optional read-only API/SPA serving, independent of toolkit config and clients; follow its scoped guidance.
 - [Dockerfile](Dockerfile), [entrypoint.sh](entrypoint.sh), [docker-compose.yml](docker-compose.yml): current cron-based runtime, mounts, optional GPU, and PUID/PGID behavior.
 - Browser extensions and the legacy local HTTP bridge still exist. Removal belongs to the authorized web implementation, not tooling setup.
 - [coding_agent_helpers/](coding_agent_helpers/): retained source kit, not a second set of active instructions. Installed guidance here is authoritative.
 
-Read [coding standards](docs/agents/CODING_STANDARDS.md) before public API, config, compatibility, dependency, generated-file, or documentation changes. Keep CLI/PyPI behavior intact unless the task explicitly changes it. Do not invent frontend scripts, generators, or framework authorities before scaffolding establishes them.
+Read [coding standards](docs/agents/CODING_STANDARDS.md) before public API, config, compatibility, dependency, generated-file, or documentation changes. Keep CLI/PyPI behavior intact unless the task explicitly changes it. Use the web commands in [docs/WEB_UI.md](docs/WEB_UI.md); do not invent job, auth, or migration authorities that do not exist yet.
 
 ## Safety And Verification
 
@@ -35,5 +37,7 @@ Read [design principles](docs/agents/DESIGN_PRINCIPLES.md) before UI/UX work. Th
 For reviews, use the [code-review skill](.claude/skills/code-review/SKILL.md) and [repository review concerns](docs/agents/CODE_REVIEWS.md). Review requests do not authorize fixes or remote posting.
 
 Use [the ADR index](docs/decisions/README.md). Read [ADR-0000](docs/decisions/0000-record-architecture-decisions.md) before recording architecture choices. Merge accepted architecture records with implementation and validation; keep unimplemented choices in the backlog.
+
+Read [ADR-0001](docs/decisions/0001-read-only-web-scaffold.md) before changing frontend/API ownership, schema generation, or scaffold serving.
 
 Report changed behavior, checks run, checks not run, and residual risks concisely. File placement is not proof that an agent platform loaded instructions or invoked a skill.

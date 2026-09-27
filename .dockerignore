@@ -2,6 +2,11 @@
 config.json
 config.toml
 .vscode
+**/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+src/szurubooru_toolkit/web/static/
 
 # Docker
 .git

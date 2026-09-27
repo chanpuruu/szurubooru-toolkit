@@ -1,0 +1,49 @@
+name: Web scaffold checks
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'src/szurubooru_toolkit/web/**'
+      - 'tests/test_web.py'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'Dockerfile.web'
+      - 'compose.web.yml'
+      - '.dockerignore'
+      - '.github/workflows/web-scaffold.yml'
+permissions:
+  contents: read
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.19'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --frozen --extra web --python 3.11
+      - run: uv run --no-sync pytest -q tests/test_web.py
+      - run: uv run --no-sync black --check src/szurubooru_toolkit/web tests/test_web.py
+      - run: uv run --no-sync isort --check-only src/szurubooru_toolkit/web tests/test_web.py
+      - run: uv run --no-sync flake8 src/szurubooru_toolkit/web tests/test_web.py
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run api:check
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
+      - run: docker compose -f compose.web.yml config --quiet
+      - run: docker build -f Dockerfile.web -t szuru-web-scaffold .

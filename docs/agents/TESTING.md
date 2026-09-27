@@ -18,7 +18,7 @@ Read before changing test infrastructure, fixtures, migrations, or running integ
 | Guidance hook only, including untracked guidance | `uv run --no-project --with pre-commit pre-commit run agent-guidance --files AGENTS.md` |
 | Validator regression tests | `uv run --no-project --with pytest --with-requirements coding_agent_helpers/checks/requirements.txt python -m pytest -q coding_agent_helpers/checks/test_validate_docs.py` |
 
-Replace the selected Python path with the touched file/test. No frontend package scripts, static type checker, migrations, or API code generator exist yet. Document and test those commands with scaffolding rather than guessing them.
+Replace the selected Python path with the touched file/test. The [web scaffold guide](../WEB_UI.md) documents npm lint/test/typecheck/build, API generation/drift checks, and Playwright commands. No migrations or operational job tests exist yet.
 
 ## Isolation
 
@@ -38,6 +38,6 @@ Add component and Playwright checks with the frontend scripts. Exercise producti
 
 The local `agent-guidance` pre-commit hook runs the retained kit validator in strict installed-guidance mode. It checks links, parsed YAML frontmatter, and unresolved markers; it does not prove architectural correctness or platform activation. The kit is deliberately excluded from this strict installed scan.
 
-Hook configuration is versioned, but installing a Git hook in a developer checkout is separate (`uv run pre-commit install`). Existing CI is release-only; this installation does not add remote CI enforcement. Do not trigger release workflows to test docs.
+Hook configuration is versioned, but installing a Git hook in a developer checkout is separate (`uv run pre-commit install`). [Web scaffold CI](../../.github/workflows/web-scaffold.yml) configures frontend/backend and container checks on relevant pull requests; existing publishing workflows remain tag-triggered. Do not trigger release workflows to test docs.
 
 Validate narrow to broad, inspect the final diff, and report skipped checks and unrelated failures. Verify instruction/skill discovery in a clean agent session when possible; otherwise report activation unverified.
