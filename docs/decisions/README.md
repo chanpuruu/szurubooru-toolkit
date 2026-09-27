@@ -6,5 +6,6 @@ Open records only when their triggers apply, their decision changes, or governin
 | --- | --- | --- |
 | [0000: Record architecture decisions](0000-record-architecture-decisions.md) | accepted | Recording or promoting an architecture choice |
 | [0001: Read-only web scaffold](0001-read-only-web-scaffold.md) | accepted | Changing frontend/API ownership, schema generation, or scaffold serving |
+| [0002: Retire the legacy browser bridge](0002-retire-legacy-browser-bridge.md) | accepted | Changing browser import compatibility or adding replacement import endpoints |
 
 The [backlog](backlog.md) holds selected but unimplemented operational architecture. Use the [record outline](architecture-decision.md) when a choice lands with implementation and validation. The accepted scaffold record does not implement the full web plan.

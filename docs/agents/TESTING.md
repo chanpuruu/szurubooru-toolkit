@@ -14,7 +14,7 @@ Read before changing test infrastructure, fixtures, migrations, or running integ
 | Lint, selected file | `uv run flake8 src/szurubooru_toolkit/config.py` |
 | Build distribution | `uv build` |
 | Existing pre-commit checks | `uv run pre-commit run --all-files` |
-| Installed guidance validation | `uv run --no-project --with-requirements coding_agent_helpers/checks/requirements.txt python coding_agent_helpers/checks/validate_docs.py AGENTS.md docs/agents docs/decisions .claude/skills/code-review WEB_UI_PLAN.md` |
+| Installed guidance validation | `uv run --no-project --with-requirements coding_agent_helpers/checks/requirements.txt python coding_agent_helpers/checks/validate_docs.py AGENTS.md docs/agents docs/decisions .claude/skills/code-review docs/plans docs/WEB_UI.md frontend/AGENTS.md src/szurubooru_toolkit/web/AGENTS.md` |
 | Guidance hook only, including untracked guidance | `uv run --no-project --with pre-commit pre-commit run agent-guidance --files AGENTS.md` |
 | Validator regression tests | `uv run --no-project --with pytest --with-requirements coding_agent_helpers/checks/requirements.txt python -m pytest -q coding_agent_helpers/checks/test_validate_docs.py` |
 

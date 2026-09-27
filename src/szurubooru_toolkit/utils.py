@@ -21,6 +21,7 @@ from loguru import logger
 from PIL import Image
 
 from szurubooru_toolkit import boorus
+from szurubooru_toolkit.concurrency import run_concurrently  # noqa F401
 from szurubooru_toolkit.config import Config
 from szurubooru_toolkit.pixiv import Pixiv
 from szurubooru_toolkit.pixiv import PixivError
@@ -282,6 +283,7 @@ def interrupt_exit(code: int = 1) -> None:
     # make the resource tracker print a leaked-semaphore warning after exiting
     try:
         from multiprocessing.synchronize import SemLock
+
         from tqdm.std import TqdmDefaultWriteLock
 
         SemLock._cleanup(TqdmDefaultWriteLock.mp_lock._semlock.name)
@@ -289,58 +291,6 @@ def interrupt_exit(code: int = 1) -> None:
         pass
 
     os._exit(code)
-
-
-def run_concurrently(items, worker, workers: int, total: int, hide_progress: bool) -> None:
-    """
-    Runs the worker over all items on a thread pool, showing progress.
-
-    Worker errors are logged per item and don't abort the remaining items. With
-    workers <= 1 the items are processed sequentially without a pool.
-
-    Args:
-        items: Iterable of items to process (may be a generator).
-        worker: Callable invoked with a single item.
-        workers (int): Number of concurrent workers.
-        total (int): Total number of items, for the progress bar.
-        hide_progress (bool): Whether to hide the progress bar.
-
-    Returns:
-        None
-    """
-
-    from tqdm import tqdm
-
-    def safe_worker(item) -> None:
-        try:
-            worker(item)
-        except Exception as e:
-            logger.error(f'Could not process {item}: {e}')
-
-    if workers <= 1:
-        for item in tqdm(items, ncols=80, position=0, leave=False, total=total, disable=hide_progress):
-            safe_worker(item)
-        return
-
-    # items may be a lazily-paginated generator that takes minutes to consume, so
-    # create the bar before submitting and count completed work via callbacks —
-    # otherwise no bar exists until every page has been fetched.
-    progress = tqdm(total=total, ncols=80, position=0, leave=False, disable=hide_progress)
-    executor = ThreadPoolExecutor(max_workers=workers)
-    try:
-        futures = []
-        for item in items:
-            future = executor.submit(safe_worker, item)
-            future.add_done_callback(lambda _: progress.update(1))
-            futures.append(future)
-        for _ in as_completed(futures):
-            pass
-    except KeyboardInterrupt:
-        executor.shutdown(wait=False, cancel_futures=True)
-        raise
-    finally:
-        progress.close()
-    executor.shutdown()
 
 
 def audit_rating(*ratings: str) -> str:

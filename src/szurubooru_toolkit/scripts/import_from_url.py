@@ -9,6 +9,7 @@ from loguru import logger
 
 from szurubooru_toolkit import config
 from szurubooru_toolkit import szuru
+from szurubooru_toolkit.concurrency import run_concurrently
 from szurubooru_toolkit.pixiv import Pixiv
 from szurubooru_toolkit.relations import RelationsBatch
 from szurubooru_toolkit.scripts import upload_media
@@ -18,7 +19,6 @@ from szurubooru_toolkit.utils import extract_twitter_artist
 from szurubooru_toolkit.utils import generate_src
 from szurubooru_toolkit.utils import get_site
 from szurubooru_toolkit.utils import invoke_gallery_dl
-from szurubooru_toolkit.utils import run_concurrently
 from szurubooru_toolkit.utils import sort_files
 
 

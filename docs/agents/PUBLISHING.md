@@ -8,6 +8,6 @@ Current release workflows are [Docker publishing](../../.github/workflows/deploy
 
 Before an authorized operation, inspect status, diff, current branch, intended remote, and staged contents. Exclude secrets, unrelated work, generated noise, and unapproved lockfile changes. Report checks and residual risks, then name the exact operation awaiting approval.
 
-Preserve existing image tags, extras, CLI entry points, and cron/PUID/PGID behavior unless the active task authorizes migration. Extension retirement and web deployment are a planned breaking release, not part of this tooling installation.
+Preserve existing image tags, extras, CLI entry points, and cron/PUID/PGID behavior unless the active task authorizes migration. Extension/bridge retirement is an unreleased breaking change authorized during structural cleanup; it does not authorize publishing or claim operational web deployment is ready.
 
 Before remote review posting, confirm the reviewed revision, deduplicate existing discussions, anchor findings to relevant code, and verify the write result. A review request alone grants no remote-write permission.

@@ -60,6 +60,6 @@ repos:
         entry: python coding_agent_helpers/checks/validate_docs.py
         language: python
         additional_dependencies: ['PyYAML>=6.0,<7']
-        args: [AGENTS.md, docs/agents, docs/decisions, .claude/skills/code-review, WEB_UI_PLAN.md, docs/WEB_UI.md, frontend/AGENTS.md, src/szurubooru_toolkit/web/AGENTS.md]
+        args: [AGENTS.md, docs/agents, docs/decisions, .claude/skills/code-review, docs/plans, docs/WEB_UI.md, frontend/AGENTS.md, src/szurubooru_toolkit/web/AGENTS.md]
         pass_filenames: false
-        files: '^(AGENTS\.md|WEB_UI_PLAN\.md|docs/WEB_UI\.md|frontend/AGENTS\.md|src/szurubooru_toolkit/web/AGENTS\.md|docs/(agents|decisions)/.*|\.claude/skills/code-review/.*|coding_agent_helpers/checks/.*|\.pre-commit-config\.yaml)$'
+        files: '^(AGENTS\.md|docs/WEB_UI\.md|frontend/AGENTS\.md|src/szurubooru_toolkit/web/AGENTS\.md|docs/(agents|decisions|plans)/.*|\.claude/skills/code-review/.*|coding_agent_helpers/checks/.*|\.pre-commit-config\.yaml)$'

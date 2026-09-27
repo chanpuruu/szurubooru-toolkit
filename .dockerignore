@@ -16,10 +16,9 @@ src/szurubooru_toolkit/web/static/
 Dockerfile
 docker-compose.yml
 LICENSE
-config_sample.toml
+examples/
 misc/deepbooru
 misc/tags
-crontab_sample
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

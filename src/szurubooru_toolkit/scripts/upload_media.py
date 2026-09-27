@@ -10,6 +10,7 @@ from loguru import logger
 
 from szurubooru_toolkit import config
 from szurubooru_toolkit import szuru
+from szurubooru_toolkit.concurrency import run_concurrently
 from szurubooru_toolkit.relations import RelationsBatch
 from szurubooru_toolkit.relations import dhash
 from szurubooru_toolkit.scripts import auto_tagger
@@ -19,7 +20,6 @@ from szurubooru_toolkit.szurubooru import Szurubooru
 from szurubooru_toolkit.szurubooru import SzurubooruError
 from szurubooru_toolkit.utils import get_md5sum
 from szurubooru_toolkit.utils import interrupt_exit
-from szurubooru_toolkit.utils import run_concurrently
 from szurubooru_toolkit.utils import shrink_img
 
 

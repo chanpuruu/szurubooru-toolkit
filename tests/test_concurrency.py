@@ -5,12 +5,16 @@ import pytest
 
 import szurubooru_toolkit
 from szurubooru_toolkit import utils
+from szurubooru_toolkit.concurrency import run_concurrently
 from szurubooru_toolkit.saucenao import SauceNaoCooldown
 from szurubooru_toolkit.szurubooru import Tag
 from szurubooru_toolkit.szurubooru import TagNotFoundError
 from szurubooru_toolkit.utils import get_cached_implications
-from szurubooru_toolkit.utils import run_concurrently
 from szurubooru_toolkit.utils import statistics
+
+
+def test_legacy_concurrency_import_is_preserved():
+    assert utils.run_concurrently is run_concurrently
 
 
 def test_statistics_thread_safe():

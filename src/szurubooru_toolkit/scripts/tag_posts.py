@@ -2,11 +2,11 @@ from loguru import logger
 
 from szurubooru_toolkit import config
 from szurubooru_toolkit import szuru
+from szurubooru_toolkit.concurrency import run_concurrently
 from szurubooru_toolkit.szurubooru import SzurubooruError
 from szurubooru_toolkit.utils import collect_sources
 from szurubooru_toolkit.utils import get_cached_implications
 from szurubooru_toolkit.utils import interrupt_exit
-from szurubooru_toolkit.utils import run_concurrently
 
 
 @logger.catch

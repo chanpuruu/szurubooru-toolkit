@@ -2,7 +2,7 @@
 
 Read before UI, UX, information architecture, or product-design work.
 
-The current browser extensions are legacy clients. The future interface in [WEB_UI_PLAN.md](../../WEB_UI_PLAN.md) is a Vue 3 SPA for one administrator on an Unraid-hosted trusted LAN. Do not build it during tooling setup or treat planned components as installed.
+The browser extensions are retired. The target interface in [the web plan](../plans/web-ui.md) is a Vue 3 SPA for one administrator on an Unraid-hosted trusted LAN. Only a read-only scaffold exists; do not treat planned workflows as installed.
 
 - Build a working operator console, not a landing page or shell-command textbox. Organize all 13 operational commands into import/upload, tagging, organization, maintenance, jobs, and profiles.
 - Follow the planned Vue/TypeScript/Vite, PrimeVue, and Lucide choices when scaffolding. Keep server state in TanStack Vue Query and reserve Pinia for genuinely client-owned state; avoid duplicate session/data authorities.

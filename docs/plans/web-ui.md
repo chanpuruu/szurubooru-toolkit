@@ -2,6 +2,16 @@
 
 Build a workflow-oriented Vue 3 SPA and FastAPI backend for the complete szurubooru-toolkit command set. The reference deployment is one Unraid-friendly Docker container: FastAPI serves the compiled SPA, SQLite persists authentication, profiles, jobs, and history, an embedded dispatcher runs one isolated CLI subprocess at a time, and SSE delivers logs and progress. Existing CLI behavior remains supported; Redis, distributed workers, schedules, and multi-user roles are explicitly deferred.
 
+## Implementation Status
+
+As of 2026-09-27, no numbered phase is complete. The separately authorized read-only scaffold implements portions of steps 7, 29, and 38, plus a separate Docker foundation. Phase 1 command contracts, authentication, persistence, and all operational workflows remain unimplemented.
+
+Structural cleanup retired the extensions and legacy bridge early, as explicitly approved in [ADR-0002](../decisions/0002-retire-legacy-browser-bridge.md). Step 28's removal portion is complete; the new CLI web launcher and replacement import workflows are still pending. Examples now live under `examples/`, the cron helper under `docker/`, and this plan under `docs/plans/`. Existing runtime mount paths are unchanged.
+
+See [the scaffold guide](../WEB_UI.md) for currently runnable commands. The phases below describe the remaining target, not an authorization to implement everything at once.
+
+The first Python cleanup extracted the existing thread-pool helper into `concurrency.py`, retaining the old `utils.run_concurrently` import and behavior. Explicit runtime ownership and further utility decomposition remain incremental follow-up work; this extraction does not implement Phase 1 execution events or outcome normalization.
+
 ## Recommended Architecture
 
 - **Frontend:** Vue 3, TypeScript, Vite, Vue Router, TanStack Vue Query, Pinia for session/UI preferences only, PrimeVue accessible primitives with a restrained operator-console theme, Lucide Vue icons, and OpenAPI-generated API types.
@@ -51,7 +61,7 @@ Build a workflow-oriented Vue 3 SPA and FastAPI backend for the complete szurubo
 25. Implement tagging workflows in parallel: auto-tagger with dry-run-first flow and WD/SauceNAO/MD5 controls; preview-tags with score tables and threshold markers; tag-posts with query preview, add/remove tags, source, mode, implications, and workers.
 26. Implement tag/relation workflows in parallel: create-tags as explicit single/file/query modes; create-relations and fix-relations with target previews, thresholds, mutation summaries, and confirmations.
 27. Implement maintenance workflows in parallel: find-duplicates with cluster result tables and optional relation action; fix-sankaku-sources with dry-run comparison; reset-posts and delete-posts with exact risk treatment and per-item outcomes.
-28. Treat the old `webserver` as infrastructure, not a runnable job. Replace its implementation with the new web application launcher (also expose a clearer `web` alias), remove the unauthenticated extension endpoints, and delete `chrome_extension/` and `firefox_addon/` plus their documentation in this breaking release.
+28. Extension directories, their documentation, the unauthenticated endpoints, and the old `webserver` command were removed during structural cleanup. Add a new `web` CLI launcher when its runtime contract is implemented; do not register it as a job or restore the old bridge. Replacement import workflows remain required.
 
 ## Phase 6: Vue SPA
 
@@ -64,7 +74,7 @@ Build a workflow-oriented Vue 3 SPA and FastAPI backend for the complete szurubo
 ## Phase 7: Docker, Unraid, Release, And Documentation
 
 34. Add a Node build stage to `Dockerfile`, copy the compiled SPA into the Python runtime, install the `web` optional dependency for every image variant, and keep the runtime free of Node/npm. Add a CPU+Pixiv `-all` image and a CUDA+Pixiv `-all-cuda` image so every optional toolkit feature has a web-capable Docker choice.
-35. Refactor `entrypoint.sh` into explicit `cron`, `web`, and one-shot command modes while preserving existing defaults. In web mode initialize/chown `/data` and allowed writable mounts, drop to PUID/PGID, and exec one Uvicorn process so signals reach the dispatcher and its child process group.
+35. Refactor `docker/entrypoint.sh` into explicit `cron`, `web`, and one-shot command modes while preserving existing defaults. In web mode initialize/chown `/data` and allowed writable mounts, drop to PUID/PGID, and exec one Uvicorn process so signals reach the dispatcher and its child process group.
 36. Add an Unraid-oriented compose/example configuration: configurable host port (container 8080), `/data` on local cache-backed appdata, one or more named media mounts, optional config import mount, persistent Hugging Face cache, PUID/PGID/TZ, reverse-proxy base URL/cookie security, upload limits, and optional NVIDIA GPU exposure. Do not place SQLite on SMB/NFS; media mounts may be remote.
 37. Add container health checks and startup diagnostics without leaking secrets. Preserve the five current image tags, add `-all-cuda`, and update the Docker publishing matrix; build/test the SPA before each image and before any wheel that advertises the web extra.
 38. Add PR CI for Python lint/tests, frontend lint/typecheck/unit/build, OpenAPI client drift, Playwright smoke tests, and a slim Docker build. Keep tag-triggered PyPI/Docker publishing, and include built frontend assets in the web-capable wheel only if native `szuru-toolkit web` is advertised.
@@ -90,10 +100,10 @@ Build a workflow-oriented Vue 3 SPA and FastAPI backend for the complete szurubo
 - `src/szurubooru_toolkit/web/`: new FastAPI app, API, auth, persistence, profiles, files, preflights, dispatcher, executor, and generated static assets.
 - `frontend/`: new Vue application and browser tests.
 - `pyproject.toml` and `uv.lock`: optional web dependencies and lock updates.
-- `Dockerfile`, `entrypoint.sh`, and `docker-compose.yml`: multi-stage build, modes, persistent mounts, port/GPU/health configuration.
+- `Dockerfile`, `docker/entrypoint.sh`, and `docker-compose.yml`: multi-stage build, modes, persistent mounts, port/GPU/health configuration.
 - `.github/workflows/`: PR validation and release matrix updates.
 - `tests/` and `.claude/skills/run-szurubooru-toolkit/driver.py`: backend, command-contract, and fake-Szurubooru integration coverage.
-- `chrome_extension/` and `firefox_addon/`: remove immediately with their old server endpoints/docs.
+- Legacy extensions and their HTTP bridge: retired; replacement import workflows remain unimplemented.
 - `README.md`, `docs/WEB_UI.md`, and `docs/UNRAID.md`: usage, security, deployment, and migration guidance.
 
 ## Verification
@@ -114,10 +124,10 @@ Build a workflow-oriented Vue 3 SPA and FastAPI backend for the complete szurubo
 - FastAPI is preferred over Flask because typed Pydantic contracts, OpenAPI generation, async streaming/uploads, and dependency injection fit the SPA/job boundary; Django adds unnecessary ORM/admin/runtime scope.
 - SQLite persists app state and the queue; it is not a distributed broker. One embedded dispatcher and one active top-level job are deliberate because scripts already parallelize internally.
 - Redis/Celery/RQ and a separate worker become justified only for multiple web replicas/hosts, multiple active queue consumers, independent API/worker availability, or materially higher multi-user throughput.
-- All 13 operational commands ship in the first web release. `webserver` becomes the app launcher and is not a selectable job.
+- All 13 operational commands ship in the first web release. A future `web` CLI command launches the app and is not a selectable job; the legacy `webserver` command is retired.
 - Named web profiles are authoritative for web jobs; existing `config.toml` remains authoritative for normal CLI/cron and can be imported/exported.
 - Browser uploads and allowlisted mounted folders are included. Arbitrary server paths and arbitrary shell commands are excluded.
 - Built-in single-admin authentication is included for trusted-LAN use. Multi-user roles, SSO/trusted-proxy auth, and internet-hardening beyond reverse-proxy TLS guidance are excluded.
-- Browser extensions and their unauthenticated endpoints are removed immediately; this warrants a breaking/major release.
+- Browser extensions and their unauthenticated endpoints were retired during structural cleanup, before replacement workflows. This is an unreleased breaking change and warrants a breaking/major release when published.
 - Web-managed recurring schedules are deferred. The queue's origin metadata and executor boundary should allow a later scheduler to enqueue the same immutable job requests without introducing Redis.
 - Jobs are never automatically retried or resumed because many commands mutate remote state and are not transactional/idempotent.

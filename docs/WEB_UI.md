@@ -1,6 +1,8 @@
 # Web Scaffold
 
-The repository now contains a runnable Vue 3 + TypeScript + Vite shell and an optional FastAPI package. This is **read-only development scaffolding**, not the complete web application in [the plan](../WEB_UI_PLAN.md). It does not run toolkit commands, load toolkit config, contact Szurubooru, or offer login, profiles, uploads, jobs, SQLite, or scheduling. Existing CLI, extensions, cron images, and release entrypoints remain unchanged.
+The repository now contains a runnable Vue 3 + TypeScript + Vite shell and an optional FastAPI package. This is **read-only development scaffolding**, not the complete web application in [the plan](plans/web-ui.md). It does not run toolkit commands, load toolkit config, contact Szurubooru, or offer login, profiles, uploads, jobs, SQLite, or scheduling. Ordinary CLI and cron behavior remain supported.
+
+**Unreleased breaking change:** Chrome/Firefox extensions and their `szuru-toolkit webserver` bridge were retired during structural cleanup, before their replacement. Use the normal CLI `import-from-url` command for URL imports. The scaffold deliberately rejects `/import-from-url` and `/import-from-all-tabs`; it cannot accept browser imports yet.
 
 ## Toolchain
 

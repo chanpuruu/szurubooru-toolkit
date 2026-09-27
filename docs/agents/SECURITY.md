@@ -4,7 +4,7 @@ Read for secrets, authentication, authorization, external requests, parsing, upl
 
 ## Current Authorities
 
-Szurubooru's remote API enforces the configured account's permissions. The toolkit config selects the endpoint and credentials; it is not a multi-user authorization service. The legacy extension bridge has no application login and must not be exposed as a trusted-LAN administration service.
+Szurubooru's remote API enforces the configured account's permissions. The toolkit config selects the endpoint and credentials; it is not a multi-user authorization service. The unauthenticated legacy extension bridge is retired. Keep the new scaffold read-only until authorization is implemented.
 
 Configuration, cookie files, logs, downloads, and images can contain private data. Do not read or print real secrets to investigate setup. Never put tokens in examples, fixtures, command lines, Git, or review output. Use fake credentials and isolated configs for tests.
 
@@ -14,7 +14,7 @@ Uploads and metadata are untrusted. Resolve paths against explicit roots, reject
 
 ## Web Implementation Requirements
 
-The [plan](../../WEB_UI_PLAN.md) proposes a single-admin authenticated backend and encrypted profiles; neither exists yet. Implement authorization at every API/data access boundary, not only in navigation or disabled buttons. Protect unsafe cookie-authenticated requests against CSRF and avoid persistent browser credential storage.
+The [plan](../plans/web-ui.md) proposes a single-admin authenticated backend and encrypted profiles; neither exists yet. Implement authorization at every API/data access boundary, not only in navigation or disabled buttons. Protect unsafe cookie-authenticated requests against CSRF and avoid persistent browser credential storage.
 
 Use maintained session, password-hashing, and encryption libraries. Keep the bootstrap secret lifecycle explicit. Encrypt profile secrets and private snapshots, restrict key/config file permissions, redact logs and events, and include key backup/recovery rules. Host compromise is outside what a co-located encryption key can prevent.
 

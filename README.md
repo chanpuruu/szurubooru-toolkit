@@ -9,6 +9,8 @@ Python package and script collection to manage your [szurubooru](https://github.
 
 A read-only [Vue/FastAPI web scaffold](docs/WEB_UI.md) is available for development. It does not yet provide login or execute commands; the existing CLI and cron deployment remain unchanged.
 
+**Unreleased breaking change:** the Chrome/Firefox extensions and `szuru-toolkit webserver` HTTP bridge have been retired. Browser-driven imports are unavailable until the planned web workflows are implemented. Use the existing `szuru-toolkit import-from-url` command with your normal configuration for URL imports; the read-only web scaffold is not a replacement yet.
+
 ```
 Usage: szuru-toolkit [OPTIONS] COMMAND [ARGS]...
 
@@ -48,7 +50,6 @@ Commands:
   reset-posts          Remove tags and sources
   tag-posts            Tag posts manually
   upload-media         Upload media files
-  webserver            Run the webserver for the browser extensions
 ```
 ## :ballot_box_with_check: Requirements
 In order to run `szuru-toolkit`, Python `3.11` or newer is required.
@@ -101,12 +102,12 @@ the non-root user can write and streams it to the container output.
 <details>
 1. Copy `docker-compose.yml` to the location where you want to run the toolkit.
 
-1. Copy `config_sample.toml` to the same location, renaming to `config.toml` and
+1. Copy [examples/config_sample.toml](examples/config_sample.toml) to the same location, renaming to `config.toml` and
 replacing with your configuration.
 
-1. Copy `crontab_sample` to the same location, renaming to `crontab` and adding
+1. Copy [examples/crontab_sample](examples/crontab_sample) to the same location, renaming to `crontab` and adding
    the commands you would like to run regularly. An example command is provided
-   in `crontab_sample`.
+   in that sample.
 
 1. Make sure to set the `src_path` option in `config.toml` to use
    `/szurubooru-toolkit/upload_src`. If you're using a different directory than
@@ -196,7 +197,6 @@ Following commands are currently available:
 * `reset-posts`: Remove tags and sources
 * `tag-posts`: Tag posts manually
 * `upload-media`: Upload media files
-* `webserver`: Run the webserver for the browser extensions
 
 Check `szuru-toolkit -h` or `szuru-toolkit COMMAND -h` for a detailed description of supported options.
 

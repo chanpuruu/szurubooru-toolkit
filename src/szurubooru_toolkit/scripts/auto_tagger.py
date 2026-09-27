@@ -7,6 +7,7 @@ from PIL import UnidentifiedImageError
 
 from szurubooru_toolkit import config
 from szurubooru_toolkit import szuru
+from szurubooru_toolkit.concurrency import run_concurrently
 from szurubooru_toolkit.saucenao import SauceNao
 from szurubooru_toolkit.saucenao import SauceNaoCooldown
 from szurubooru_toolkit.szurubooru import Post
@@ -17,7 +18,6 @@ from szurubooru_toolkit.utils import download_media
 from szurubooru_toolkit.utils import get_cached_implications
 from szurubooru_toolkit.utils import interrupt_exit
 from szurubooru_toolkit.utils import prepare_post
-from szurubooru_toolkit.utils import run_concurrently
 from szurubooru_toolkit.utils import sanitize_tags
 from szurubooru_toolkit.utils import search_boorus
 from szurubooru_toolkit.utils import shrink_img

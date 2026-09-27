@@ -28,7 +28,7 @@ Use an npm-managed Vue shell with Router, PrimeVue, Lucide, and TanStack Vue Que
 
 The factory exposes minimal status, liveness and bundle-readiness endpoints. It never initializes toolkit config/clients or exposes mutations. Serve built assets and only declared SPA paths on the same origin; unknown API/asset paths remain errors. The launcher defaults to loopback. A separate Docker scaffold definition leaves the cron image untouched; this record does not accept the future operational Unraid runtime.
 
-Auth, profiles, persistence, uploads, jobs and extension retirement remain in the backlog. Public docs endpoints are disabled, not a substitute for future authentication.
+Auth, profiles, persistence, uploads and jobs remain in the backlog. Extension retirement was subsequently brought forward during structural cleanup; see [the updated plan](../plans/web-ui.md). Public docs endpoints are disabled, not a substitute for future authentication.
 
 ## Validation
 
@@ -38,4 +38,4 @@ Locally these checks passed using Python 3.11 and installed Chrome. Windows skip
 
 ## More Information
 
-See [setup and verification](../WEB_UI.md), [the plan](../../WEB_UI_PLAN.md), and [remaining decisions](backlog.md).
+See [setup and verification](../WEB_UI.md), [the plan](../plans/web-ui.md), and [remaining decisions](backlog.md).

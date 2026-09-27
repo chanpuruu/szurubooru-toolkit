@@ -41,5 +41,5 @@ RUN uv sync --frozen --no-dev $EXTRAS
 # cron job) re-syncs against the lockfile and uninstalls the extras.
 ENV UV_NO_SYNC=1
 
-RUN chmod +x /szurubooru-toolkit/entrypoint.sh
-CMD ["/szurubooru-toolkit/entrypoint.sh"]
+RUN chmod +x /szurubooru-toolkit/docker/entrypoint.sh
+CMD ["/szurubooru-toolkit/docker/entrypoint.sh"]

@@ -60,6 +60,8 @@ def test_unknown_paths_do_not_fall_back_to_html(static_root, path):
 def test_no_mutating_api_or_permissive_cors(static_root):
     client = TestClient(create_app(static_root))
     assert client.post('/api/v1/jobs', json={}).status_code == 404
+    assert client.get('/import-from-url?url=https://example.invalid').status_code == 404
+    assert client.post('/import-from-all-tabs', json={'urls': ['https://example.invalid']}).status_code == 404
     assert client.post('/system').status_code == 405
     response = client.options('/api/v1/system/status', headers={'Origin': 'https://untrusted.example'})
     assert 'access-control-allow-origin' not in response.headers
