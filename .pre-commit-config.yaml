@@ -52,3 +52,14 @@ repos:
     hooks:
     -   id: check-hooks-apply
     -   id: check-useless-excludes
+
+-   repo: local
+    hooks:
+    -   id: agent-guidance
+        name: Validate installed agent guidance
+        entry: python coding_agent_helpers/checks/validate_docs.py
+        language: python
+        additional_dependencies: ['PyYAML>=6.0,<7']
+        args: [AGENTS.md, docs/agents, docs/decisions, .claude/skills/code-review, WEB_UI_PLAN.md]
+        pass_filenames: false
+        files: '^(AGENTS\.md|WEB_UI_PLAN\.md|docs/(agents|decisions)/.*|\.claude/skills/code-review/.*|coding_agent_helpers/checks/.*|\.pre-commit-config\.yaml)$'
